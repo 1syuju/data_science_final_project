@@ -98,9 +98,8 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
       *職級平均只在 fit() 用訓練資料計算*,transform() 只套用,所以放進
       Pipeline 後交叉驗證每一折都是各自重算,不會洩漏。
     - stagnation:上次升遷距今年數 / 在職年數(在職年數為 0 時設為 0)。
-    - workload:OverTime(0/1) × BusinessTravel(0/1/2)。
-    - satisfaction_score:工作滿意度、環境滿意度、工作生活平衡的平均
-      (待調整)。
+    - workload:OverTime(0/1) × BusinessTravel(0/1/2)，表示加班與出差頻率的交互特徵。
+    - satisfaction_score:工作滿意度、環境滿意度、工作生活平衡的平均。
 
     """
 
@@ -126,10 +125,6 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
         X["workload"] = X["OverTime"] * X["BusinessTravel"]
         X["satisfaction_score"] = X[self.SAT_COLS].mean(axis=1)
         return X
-
-    def get_feature_names_out(self, input_features=None):  # pragma: no cover
-        return None
-
 
 DERIVED_COLS = ["salary_ratio", "stagnation", "workload", "satisfaction_score"]
 
