@@ -66,7 +66,14 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
 
 ### 2.3 資料處理
 - 移除 EmployeeCount、Over18、StandardHours(常數)與 EmployeeNumber(員工編號無預測意義)。
-- 依欄位性質處理數值與類別特徵:無序類別用 One-hot、有序類別用 Ordinal(樹模型可原生處理)，偏態數值欄位(如 MonthlyIncome)做 log 轉換，Logistic Regression 使用標準化。
+
+| col |  |
+|---|---|
+| EmployeeCount	| 這一列代表幾位員工	全部都是 1 |
+| Over18 | 是否年滿 18 歲	全部都是 Y |
+| StandardHours |	標準工時	全部都是 80 |
+
+- 依欄位性質處理數值與類別特徵:無序類別用 One-hot、有序類別保留數值順序，數值特徵不做 log 轉換；Logistic Regression 使用標準化，樹模型不做標準化。
 - 建立四項衍生特徵:
   - 薪資壓力:月薪 / 同職級平均月薪
   - 職涯停滯:上次升遷距今 / 在職總年數(分母為 0 時需處理)
