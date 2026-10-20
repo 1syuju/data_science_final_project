@@ -59,6 +59,8 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
 此資料集包含員工人口背景、薪資福利、工作條件、滿意度及職涯歷程等資訊，適合用來研究員工離職預測與模型解釋。
 但這是 IBM 提供的虛構員工資料，適合用於教學與方法驗證，不能直接視為真實企業員工的離職規律。
 
+==滿意度指標感覺可以做成 weighted function ?==
+
 ### 2.2 已知挑戰
 - 樣本數少(1,470 筆)且類別不平衡，離職者僅約 237 人，易過擬合，且每折驗證集的少數類樣本很少，分數變異大。
 - 類別型與數值型特徵混合，含有序類別(Education、JobLevel 等)，需比較編碼方式。
@@ -76,10 +78,10 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
 - 依欄位性質處理數值與類別特徵:無序類別用 One-hot、有序類別保留數值順序，數值特徵不做 log 轉換；Logistic Regression 使用標準化，樹模型不做標準化。
 - 建立四項衍生特徵:
   - 薪資壓力:月薪 / 同職級平均月薪
-  - 職涯停滯:上次升遷距今 / 在職總年數(分母為 0 時需處理)
-  - 工作負荷:加班 × 出差頻率的交互項
-  - 滿意度綜合分數:工作滿意度、環境滿意度、工作生活平衡的加權平均
-- 年齡分箱(20–29、30–39、40+)僅供公平性分析使用。
+  - 職涯停滯:上次升遷距今 / 在職總年數(分母為 0 時設為 0)
+  - 加班出差交互項(`workload`):加班 × 出差頻率，屬於交互特徵，不代表完整工作負荷
+  - 滿意度綜合分數:工作滿意度、環境滿意度、工作生活平衡的等權平均
+- 年齡分箱(`<30`、`30–39`、`40+`)僅供公平性分析使用，涵蓋資料中的 18 歲以上員工。
 - 使用 Pipeline 整合前處理、特徵工程與模型。**「同職級平均月薪」與 SMOTE 等需要統計量的步驟都必須只在訓練折內計算**，否則會造成洩漏。
 
 ### 2.4 評估方式
@@ -87,6 +89,7 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
   另外，使用重複分層 10 折(Repeated Stratified 10-fold)降低變異。
 - 主要指標為 ROC AUC，搭配 PR AUC、離職類 Recall、Precision 與 F1
 - Accuracy 僅作為輔助指標。
+- 公平性分析不直接依賴只有 47 位離職者的測試集；模型選定後，使用 Stratified K-fold 的折外預測，再依性別與年齡群組比較預測離職率、FPR 與 FNR。
 - Optuna 只對表現最好的一兩個模型調參(約 30–50 次試驗)，其餘模型使用預設值。
 
 ---
@@ -96,7 +99,7 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
 ### 3.1 已完成
 - [x] 看過資料集(欄位、規模、類別比例)
 - [x] 確定主題與研究問題
-- [x] 完成前處理、特徵工程、評估方式與實驗設計的規劃
+- [x] 完成 EDA、前處理、特徵工程、評估方式與實驗設計的規劃
 
 ### 3.2 實驗設計(待執行)
 
@@ -110,12 +113,12 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
 ### 3.3 TO-DO
 
 **資料與前處理**
-- [ ] 下載並載入資料集
-- [ ] EDA:欄位分布、缺失值、離職與留任差異、各類別離職率、相關性
-- [ ] 移除常數欄位與 EmployeeNumber
-- [ ] 確定編碼與數值轉換方式
-- [ ] 實作四項衍生特徵(組內統計量放進 Pipeline)
-- [ ] 切分測試集並固定隨機種子
+- [x] 下載並載入資料集
+- [x] EDA:欄位分布、缺失值、離職與留任差異、各類別離職率、相關性
+- [x] 移除常數欄位與 EmployeeNumber
+- [x] 確定編碼與數值轉換方式
+- [x] 實作四項衍生特徵(組內統計量放進 Pipeline)
+- [x] 切分測試集並固定隨機種子
 
 **基準方法(naive methods)**
 - [ ] 全部預測「留任」:確認 Accuracy 約 84%、Recall = 0
@@ -132,7 +135,7 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
 
 **解釋與分析**
 - [ ] Permutation Importance 與 SHAP
-- [ ] 公平性分析(性別、年齡層的預測離職率、FPR、FNR)
+- [ ] 公平性分析(使用折外預測比較性別、年齡層的預測離職率、FPR、FNR)
 - [ ] 成本敏感分析(FN 成本為 FP 的 3 倍、5 倍)
 
 **交付**
