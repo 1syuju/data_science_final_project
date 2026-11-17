@@ -1,0 +1,13 @@
+,抓到,漏掉,40+ 留任者
+預測機率,0.59,0.03,0.03
+OverTime,0.73,0.37,0.3
+MonthlyIncome,6186.5,7978.0,7423.5
+JobLevel,2.0,3.0,2.5
+TotalWorkingYears,12.5,12.0,18.0
+YearsAtCompany,4.0,9.0,6.0
+NumCompaniesWorked,4.0,2.0,3.0
+JobSatisfaction,3.0,3.0,3.0
+EnvironmentSatisfaction,2.0,3.0,3.0
+WorkLifeBalance,2.0,3.0,3.0
+DistanceFromHome,10.5,8.0,7.0
+人數,22.0,19.0,380.0
