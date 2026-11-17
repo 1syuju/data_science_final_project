@@ -341,7 +341,7 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
 - [x] Permutation Importance 與 SHAP
 - [x] 公平性分析
 - [x] 測試集最終評估
-- [x] 可重現的 notebook:`src/eda.ipynb` → `src/experiments.ipynb`(`src/baseline.ipynb` 是第 1 週的初版,正式數字以 `experiments.ipynb` 為準)
+- [x] 可重現的 notebook:`src/eda.ipynb` → `src/experiments.ipynb`(第 1 週的 `baseline.ipynb` 已被 `experiments.ipynb` 取代並移除,需要時可從 git 歷史找回)
 
 ### 4.2 剩下的工作(第 5 週,11/16–11/22)
 
