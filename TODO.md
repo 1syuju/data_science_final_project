@@ -6,29 +6,15 @@
 
 ## 一、待處理(需要組員決定或動手)
 
-- [ ] **製作簡報**。建議主軸:簡單模型最好 → 不平衡靠閾值解決 → SMOTE 洩漏的陷阱 → 年齡公平性問題(見 `ProgressReport.md` 第 5 節)。
-- [ ] **填分工表**。`ProgressReport.md` 第 5 節的負責人欄位還是【待填】。
 - [ ] **確認成本假設**。報告以「FN 成本 = FP 的 5 倍、閾值 0.22」為主要情境,這是 Claude 選的,組員可能有不同看法。
       改的話只要改 `src/experiments.ipynb` 第 6 節的 `MAIN_C`,再重跑。
-- [ ] **每個人重跑一次**。用 `.venv` kernel 從頭執行 `src/experiments.ipynb`(約 3 分鐘),確認 `reports/*.csv` 的數字沒變。
-- [ ] **分支還沒併回 main**。所有成果都在 `cleanup-preprocessing` 分支,沒有 push。組員從 `main` 拉不到。
+- [ ] **分支還沒併回 main**
 - [ ] **說明和 Exercise 2 數字不同的原因**。期中報告寫 LR 0.839、LR(class weight)0.828,期末是 0.845 / 0.837。
       差異來自:月薪取 log、加入四個衍生特徵、修正職涯停滯、拿掉 Gender。老師若比對,報告裡要有一句交代。
-- [ ] **決定報告最終格式**。目前是 Markdown;若要交 Word / PDF,圖片是用相對路徑 `reports/figures/...` 引用的,轉檔時要一起帶。
 
 ---
 
-## 二、隱藏問題(現在不會出錯,但可能踩到)
-
-### 環境
-
-- **Jupyter 預設 kernel 是 Anaconda 的,不是 `.venv`**。用預設 kernel 會出現 `numpy.core.multiarray failed to import`。
-  在 VS Code 右上角手動選 `.venv`。
-- **套件版本沒有固定**。`requirements.txt` 只寫下限,換版本後數字可能有小差異。本次結果使用的版本:
-  Python 3.14.3、scikit-learn 1.9.1、pandas 3.0.6、numpy 2.5.4、lightgbm 4.7.0、xgboost 3.4.1、
-  imbalanced-learn 0.14.2、optuna 5.0.0、shap 0.54.1。
-- **沒有 `.gitattributes`**。每次 commit 都會跳 `LF will be replaced by CRLF` 警告;不同作業系統的組員可能看到整個檔案都被標成修改。
-- **執行時會印出 joblib 的 `KeyError: ...joblib_memmapping_folder...`**。是 Windows 上清理暫存資料夾的已知問題,不影響結果,可以忽略。
+## 二、隱藏問題
 
 ### 程式
 
@@ -38,7 +24,7 @@
 - **`split_indices.csv` 不見時,`get_train_test()` 會自動重切而且不會警告**。重切的結果不保證和原本一樣,之前的數字就對不上了。不要刪這個檔。
 - **SMOTE 的 `smote` 只用在實驗 A、C**。最終模型不做重抽樣,不要誤以為最終模型有用 SMOTE。
 
-### 方法上的細節(報告被問到時要能回答)
+### 方法上的細節
 
 - **LightGBM 調參的最佳 `num_leaves = 4` 剛好是搜尋範圍的下限**。代表更淺的樹可能更好,搜尋範圍可以再往下開;但它和 LR 差距很大(PR AUC 0.641 vs 0.681),應該不會改變結論。
 - **閾值和成本是在同一份折外預測上選、也在上面報告**,所以 3.6 的成本數字略為樂觀。測試集(3.9)才是不偏的檢驗。
