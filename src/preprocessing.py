@@ -21,7 +21,7 @@
   步驟 1  讀取原始 CSV
   步驟 2  移除沒用的欄位,目標轉成 0/1
   步驟 3  切 80% 訓練 / 20% 測試(切一次、存檔,全組共用)
-  步驟 4  做衍生特徵(FeatureEngineer)
+  步驟 4  做衍生特徵、月薪取 log(FeatureEngineer)
   步驟 5  One-hot 類別欄位;線性模型再把數值標準化(make_preprocessor)
 
 步驟 4、5 會「從資料學東西」(平均月薪、平均值/標準差、類別清單),
@@ -52,6 +52,10 @@ DROP_COLS = CONSTANT_COLS + ID_COLS
 NOMINAL_COLS = ["Department", "EducationField", "JobRole", "MaritalStatus", "Gender"]
 TRAVEL_ORDER = {"Non-Travel": 0, "Travel_Rarely": 1, "Travel_Frequently": 2}
 DERIVED_COLS = ["salary_ratio", "stagnation", "workload", "satisfaction_score"]
+
+# 不放進模型、只留給公平性分析的欄位
+# experiments.ipynb 第 2 節:拿掉 Gender 後 ROC AUC 只差 0.002,所以不讓模型使用性別
+MODEL_DROP = ("Gender",)
 
 
 # ---------------------------------------------------------------- 步驟 1:讀取
@@ -97,10 +101,17 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
     """
     OverTime → 0/1,BusinessTravel → 0/1/2,並新增四個特徵:
     - salary_ratio       月薪 / 同職級平均月薪(平均只用訓練資料算)
-    - stagnation         上次升遷距今年數 / 在職年數
+    - stagnation         上次升遷距今年數 / 在職年數(只算年資 ≥ 2 年者,其餘為 0;
+                         年資太短的人「還沒到升遷時間」,不算停滯)
     - workload           加班 × 出差頻率
     - satisfaction_score 工作滿意度、環境滿意度、工作生活平衡的平均
+    最後把 MonthlyIncome 換成 log(月薪),減少右偏(樹模型不受影響)。
+
+    drop:不放進模型的欄位(例如 ["Gender"]),會在這一步移除。
     """
+
+    def __init__(self, drop=()):
+        self.drop = drop
 
     def fit(self, X, y=None):
         self.level_mean_ = X.groupby("JobLevel")["MonthlyIncome"].mean()
@@ -114,20 +125,27 @@ class FeatureEngineer(BaseEstimator, TransformerMixin):
 
         level_mean = X["JobLevel"].map(self.level_mean_).fillna(self.global_mean_)
         X["salary_ratio"] = X["MonthlyIncome"] / level_mean
-        years = X["YearsAtCompany"].replace(0, np.nan)
+        years = X["YearsAtCompany"].where(X["YearsAtCompany"] >= 2)
         X["stagnation"] = (X["YearsSinceLastPromotion"] / years).fillna(0.0)
         X["workload"] = X["OverTime"] * X["BusinessTravel"]
         X["satisfaction_score"] = X[
             ["JobSatisfaction", "EnvironmentSatisfaction", "WorkLifeBalance"]
         ].mean(axis=1)
-        return X
+        X["MonthlyIncome"] = np.log(X["MonthlyIncome"])
+        return X.drop(columns=list(self.drop))
 
 
 # ---------------------------------------------------------------- 步驟 5:編碼
-def make_preprocessor(kind="linear") -> Pipeline:
+def _nominal_present(X):
+    """NOMINAL_COLS 中還留在資料裡的欄位(被 drop 的就跳過)。"""
+    return [c for c in NOMINAL_COLS if c in X.columns]
+
+
+def make_preprocessor(kind="linear", drop=MODEL_DROP) -> Pipeline:
     """
     kind="linear":Logistic Regression 用,類別 One-hot + 數值標準化
-    kind="tree"  :決策樹 / RF / LightGBM 用,類別 One-hot,數值不動
+    kind="tree"  :決策樹 / RF / XGBoost / LightGBM 用,類別 One-hot,數值不動
+    drop        :不放進模型的欄位,預設 MODEL_DROP
     """
     if kind not in ("linear", "tree"):
         raise ValueError("kind 只能是 'linear' 或 'tree'")
@@ -135,12 +153,12 @@ def make_preprocessor(kind="linear") -> Pipeline:
     numeric = StandardScaler() if kind == "linear" else "passthrough"
     encode = ColumnTransformer(
         [
-            ("nominal", OneHotEncoder(handle_unknown="ignore", sparse_output=False), NOMINAL_COLS),
+            ("nominal", OneHotEncoder(handle_unknown="ignore", sparse_output=False), _nominal_present),
             ("num", numeric, make_column_selector(dtype_include="number")),
         ],
         verbose_feature_names_out=False,
     ).set_output(transform="pandas")
-    return Pipeline([("features", FeatureEngineer()), ("encode", encode)])
+    return Pipeline([("features", FeatureEngineer(drop=drop)), ("encode", encode)])
 
 
 # ---------------------------------------------------------------- 公平性分析用(不進模型)
