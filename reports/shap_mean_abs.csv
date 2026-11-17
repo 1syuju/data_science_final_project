@@ -1,0 +1,51 @@
+,mean_abs_shap
+MonthlyIncome,1.062
+OverTime,0.9171
+JobLevel,0.8623
+YearsSinceLastPromotion,0.6433
+NumCompaniesWorked,0.435
+TotalWorkingYears,0.4134
+BusinessTravel,0.3766
+DistanceFromHome,0.3443
+JobInvolvement,0.3029
+Age,0.2984
+satisfaction_score,0.2882
+stagnation,0.2872
+YearsWithCurrManager,0.2705
+JobRole_Laboratory Technician,0.2562
+RelationshipSatisfaction,0.2506
+EnvironmentSatisfaction,0.2333
+StockOptionLevel,0.2304
+salary_ratio,0.2084
+MaritalStatus_Single,0.1951
+YearsInCurrentRole,0.1765
+TrainingTimesLastYear,0.1564
+DailyRate,0.1487
+JobSatisfaction,0.1465
+JobRole_Research Scientist,0.1374
+WorkLifeBalance,0.136
+Department_Research & Development,0.1309
+YearsAtCompany,0.1283
+EducationField_Medical,0.1138
+MaritalStatus_Divorced,0.1108
+Department_Sales,0.1093
+EducationField_Technical Degree,0.1049
+MaritalStatus_Married,0.0864
+EducationField_Life Sciences,0.0756
+JobRole_Healthcare Representative,0.0726
+JobRole_Sales Executive,0.0717
+PercentSalaryHike,0.067
+JobRole_Research Director,0.0642
+workload,0.0606
+EducationField_Other,0.0496
+JobRole_Sales Representative,0.0422
+JobRole_Manufacturing Director,0.0316
+EducationField_Human Resources,0.0258
+JobRole_Human Resources,0.024
+EducationField_Marketing,0.0205
+PerformanceRating,0.016
+HourlyRate,0.0143
+JobRole_Manager,0.0092
+Education,0.005
+MonthlyRate,0.0041
+Department_Human Resources,0.0008
