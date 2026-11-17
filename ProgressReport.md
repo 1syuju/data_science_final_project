@@ -1,7 +1,20 @@
 # 期末專題報告:員工離職預測
 
-> 最後更新:2026-11-17。實驗程式在 `src/experiments.ipynb`,前處理在 `src/preprocessing.py`,
+第 17 組 · 最後更新 2026-11-17
+
+> 實驗程式在 `src/experiments.ipynb`,前處理在 `src/preprocessing.py`;
 > 所有數字都可以在 `reports/*.csv` 找到,圖在 `reports/figures/`。
+
+## 摘要
+
+本專題以 IBM HR Analytics 資料集(1,470 筆,離職 16.1%)預測員工離職,並檢驗不平衡處理、資料洩漏、決策閾值、可解釋性與公平性。
+在重複分層 10 折 × 3 交叉驗證下,**最簡單的 Logistic Regression 表現最好**(ROC AUC 0.845、PR AUC 0.681),
+勝過調參後的 LightGBM(0.826 / 0.641);class weight、SMOTE、下採樣都沒有提升 AUC,只是改變 Recall 與 Precision 的取捨,
+效果可以用**調整決策閾值**取代——在漏判成本為誤判 5 倍的假設下,最佳閾值為 0.22,比預設 0.5 降低約 21% 的平均成本。
+洩漏實驗顯示,**把 SMOTE 放在切分之前**會讓 PR AUC 虛高 0.26(LR)到 0.47(RF),而前處理洩漏的影響小於 0.01。
+SHAP 與 Permutation Importance 顯示加班、月薪、總年資最重要,方向大多符合 HR 直覺。
+公平性方面,性別間差異不顯著,但模型**漏掉了 46% 的 40 歲以上離職者**,而這群人在現有欄位上和留任者幾乎無法區分。
+最終在測試集上 ROC AUC 為 0.813(95% CI 0.74–0.88),閾值 0.22 時抓到 60% 的離職者。
 
 ## 1. 簡介
 
@@ -113,7 +126,7 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
 | 4. 可解釋性 | Permutation Importance(驗證折)+ SHAP beeswarm / waterfall | 3.7 | ✅ |
 | 5. 公平性 | 折外預測,依性別、年齡層比較預測離職率、FPR、FNR | 3.8 | ✅ |
 | (最終評估) | 測試集只開一次,附 bootstrap 95% 信賴區間 | 3.9 | ✅ |
-| 交付 | 期末報告、簡報 | 第 4 節 | ⬜ 進行中 |
+| 交付 | 期末報告(本文件)、可重現的 notebook | — | ✅ |
 
 順序的理由:先決定**特徵**(Gender、停滯修正)→ 再比**模型與不平衡處理**(A+B)→ 調參選出**最終模型** →
 用最終模型的折外預測決定**閾值**(D)→ 再用同一個模型與閾值做**解釋與公平性** → 最後才開**測試集**。
@@ -216,6 +229,8 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
 
 **Permutation Importance**(打亂一個原始欄位後 PR AUC 平均下降,第一輪 10 個驗證折):
 
+![](reports/figures/permutation_importance.png)
+
 | 排名 | 欄位 | 下降 | | 排名 | 欄位 | 下降 |
 |---|---|---|---|---|---|---|
 | 1 | OverTime | 0.181 | | 6 | JobRole | 0.055 |
@@ -239,7 +254,12 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
   停滯同理,和 YearsSinceLastPromotion 重疊。**相關欄位的 SHAP 方向不能單獨解讀**,
   要看原始欄位層級的 Permutation Importance,或把相關欄位合起來看。
 
-**單一員工範例**(waterfall,`reports/figures/shap_waterfall.png`):訓練集中預測機率最高的離職者(0.99)——
+**單一員工範例**(waterfall):
+
+![](reports/figures/shap_waterfall.png)
+
+(圖中欄位左邊的數字是標準化後的值,例如 MonthlyIncome = −1.2 代表比平均低 1.2 個標準差。)
+訓練集中預測機率最高的離職者(0.99)——
 26 歲實驗室技術員、有加班、月薪 2,340、年資 1 年、單身、沒有股票選擇權。即使他的工作滿意度是最高的 4 分,
 其他因素仍讓模型判斷為高風險,說明「滿意度高」不代表不會離職。
 
@@ -311,7 +331,11 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
 
 ![](reports/figures/test_curves.png)
 
-### 3.10 研究問題回答
+---
+
+## 4. 結論
+
+### 4.1 研究問題回答
 
 | 研究問題 | 回答 |
 |---|---|
@@ -321,37 +345,39 @@ https://www.kaggle.com/datasets/pavansubhasht/ibm-hr-analytics-attrition-dataset
 | 4. 決策成本 | FN 成本 3 倍 → 閾值 0.29;5 倍 → 0.22。比 0.5 降低約 21% 的平均成本;0.22 ~ 0.30 之間成本差異很小。 |
 | 5. 方法嚴謹性 | 前處理洩漏幾乎沒有影響(< 0.01);SMOTE 在切分前讓 PR AUC 虛高 0.26(LR)到 0.47(RF)。 |
 
-### 3.11 限制
+### 4.2 實務建議
+
+1. **用簡單、可解釋的模型就好**:在這種規模的 HR 資料上,Logistic Regression 不輸複雜模型,而且每個係數都能向主管說明。
+2. **不平衡問題用閾值處理,不要急著重抽樣**:先訓練好排序能力,再依 HR 的人力與成本決定閾值(本資料建議 0.22 ~ 0.30)。
+3. **重抽樣一定要放在交叉驗證的訓練折內**:否則驗證分數會嚴重虛高,上線後才發現模型沒那麼準。
+4. **優先關注加班、低薪、滿意度低的員工**:這是模型最依賴、也最符合直覺的訊號,也是公司能直接改善的因素。
+5. **模型只能當輔助工具**:它對 40 歲以上員工漏判近一半、對 30 歲以下員工較常誤判;
+   風險分數應作為主管面談的參考,不應直接用於考核、升遷或解雇決策。
+
+### 4.3 限制
 - IBM 虛構資料,結論不能直接套用到真實公司。
 - 測試集只有 47 位離職者,所有測試集指標的不確定性都很大。
 - 成本比例(3 倍、5 倍)是假設值,實際應由 HR 依招募與培訓成本估計。
 - 公平性只看性別與年齡,且各群組離職人數少(40 歲以上只有 41 人),FNR 的信賴區間很寬([0.31, 0.62])。
+- 資料是單一時間點的橫斷面,無法知道員工「什麼時候」會離職,也無法區分自願離職與退休。
+
+### 4.4 未來方向
+- 加入離職原因、離職時間等欄位,改用存活分析(survival analysis)預測「何時」離職。
+- 針對 40 歲以上員工蒐集其他訊號(例如退休規劃、家庭狀況),改善這群人的漏判。
+- 以真實企業資料驗證本專題的結論,特別是「簡單模型最好」與「閾值優於重抽樣」是否仍成立。
 
 ---
 
-## 4. 進度與後續計畫
+## 5. 專案進度與分工
 
-### 4.1 已完成
-- [x] EDA、前處理、四項衍生特徵(含職涯停滯修正、log 月薪)
-- [x] Gender 特徵決策
-- [x] 基準方法與 5 種模型 × 4 種不平衡處理(實驗 A、B)
-- [x] 洩漏對照(實驗 C)
-- [x] Optuna 調參、決定最終模型
-- [x] 閾值與成本分析(實驗 D)
-- [x] Permutation Importance 與 SHAP
-- [x] 公平性分析
-- [x] 測試集最終評估
-- [x] 可重現的 notebook:`src/eda.ipynb` → `src/experiments.ipynb`(第 1 週的 `baseline.ipynb` 已被 `experiments.ipynb` 取代並移除,需要時可從 git 歷史找回)
+所有分析已完成(見 3.1 的對照表)。可重現的流程:`src/eda.ipynb` → `src/experiments.ipynb`(約 3 分鐘),
+第 1 週的 `baseline.ipynb` 已被 `experiments.ipynb` 取代並移除,需要時可從 git 歷史找回。
 
-### 4.2 剩下的工作(第 5 週,11/16–11/22)
-
-| 工作 | 內容 | 負責 |
+| 工作線 | 內容 | 負責 |
 |---|---|---|
-| 撰寫期末報告 | 以本文件第 3 節為底稿,整理成正式報告格式;圖表直接用 `reports/figures/` | 【待填】 |
-| 製作簡報 | 建議主軸:「簡單模型最好 → 不平衡靠閾值解決 → SMOTE 洩漏的陷阱 → 年齡公平性問題」 | 【待填】 |
-| 重跑確認 | 在自己的電腦用 `.venv` kernel 從頭執行 `src/experiments.ipynb`(約 3 分鐘),確認數字一致 | 【待填】 |
-| (選做)補強 | 公平性指標加 bootstrap 信賴區間;SMOTENC 對照;40 歲以上員工的錯誤案例分析 | 【待填】 |
+| A 模型 | 實驗 A、B,Optuna 調參(3.3、3.5) | 【待填】 |
+| B 嚴謹性與決策 | 實驗 C、D,測試集評估(3.4、3.6、3.9) | 【待填】 |
+| C 解釋與公平性 | 特徵修正、SHAP、Permutation Importance、公平性(2.3、3.7、3.8) | 【待填】 |
 
-**風險與備案**
-- 時間不足時,選做項目全部略過,第 3 節的結果已足以回答五個研究問題。
-- 若老師要求報告測試集以外的穩定性,可直接引用交叉驗證的平均 ± 標準差(3.3、3.5)。
+剩下的工作:**製作簡報**(建議主軸:簡單模型最好 → 不平衡靠閾值解決 → SMOTE 洩漏的陷阱 → 年齡公平性問題),
+以及各組員在自己的電腦用 `.venv` kernel 重跑一次 notebook 確認數字一致。
